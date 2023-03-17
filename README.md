@@ -14,3 +14,7 @@ simply compile and run,
 ```sh
 ./compile -r
 ```
+### TODO
+
+* fix the down scale multipication 
+* sperate file for upscaling, downscaling and main wrapping functions
