@@ -5,7 +5,7 @@ Multiply the two scaled up matrices and the original matrix  [to be worked on]
 ### ToDo Meta
 parse arguments list and replace with `(void)arg` for each in the list [done]
 
-## Running 
+### Running 
 simply compile, 
 ```sh
 ./compile
