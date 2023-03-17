@@ -19,6 +19,14 @@ static void print_mat2d_plain(auto vec) {
 	}
 }
 
+static void print_mat2d_plain_color(auto vec) {
+	for(auto v : vec) {
+		for(int _v : v)
+			printf("%s%d\033[00m ",  _v == 0 ? "\033[1;38m" : "\033[1;34m", _v);
+		printf("\n");
+	}
+}
+
 static std::ostream &print_mat2d_plain_ostream(std::ostream &cout, std::vector<std::vector<int>> vec) {
 	for(auto v : vec) {
 		for(int _v : v)
@@ -73,15 +81,15 @@ int getdim(struct Tuple *t) {
 	return size;
 }
 struct Tuple create_mat2d() {
-	APPEND_ARR_(0 1 0 0 1 0 1);
-	APPEND_ARR_(1 1 0 1 1 0 1);
-	APPEND_ARR_(1 0 1 0 1 0 0);
-	APPEND_ARR_(1 1 1 1 1 1 1);
-	APPEND_ARR_(0 1 1 1 1 1 1);
-	APPEND_ARR_(0 1 0 1 1 1 1);
-	APPEND_ARR_(0 1 0 1 1 0 1);
-	APPEND_ARR_(0 1 0 1 1 0 1);
-	APPEND_ARR_(0 1 0 1 1 0 1);
+	APPEND_ARR_(0 0 0 0 0 0 0 0);
+	APPEND_ARR_(0 1 1 0 1 1 0 0);
+	APPEND_ARR_(0 0 1 0 1 0 0 0);
+	APPEND_ARR_(0 0 0 1 0 0 0 0);
+	APPEND_ARR_(0 0 0 1 0 0 0 0);
+	APPEND_ARR_(0 0 0 1 0 0 0 0);
+	APPEND_ARR_(0 0 1 1 1 0 0 0);
+	APPEND_ARR_(0 1 0 0 0 1 0 0);
+	APPEND_ARR_(1 0 0 1 0 0 1 0);
 	struct Tuple t = {6,9};
 	return t;
 }
@@ -164,29 +172,58 @@ template<class Container=std::vector<int>>
 int dotprod(Container a, std::vector<Container> b, int b_x) {
 		int dot = 1;	
 		if(a.size() < b.size()) {
-			for(unsigned int i=0;i<a.size();++i) {
-				dot += a[i] * b[i][b_x];
-			}
+			for(unsigned int i=0;i<a.size();++i) 
+				dot |= a[i] * b[i][b_x];
 			for(unsigned int i=a.size();i<b.size();++i)
-				dot += b[i][b_x];
+				dot |= b[i][b_x];
 		}
 		return dot;
 }
-
+template<class Container=std::vector<int>>
+Container cmpprod(Container a, Container b) {
+	Container cmprow;
+	if(a.size() < b.size()) {
+		for(unsigned int i=0;i<a.size();++i) {
+			cmprow.push_back(a[i] | b[i]);
+		}
+		for(unsigned int i=a.size();i<b.size();++i)
+			cmprow.push_back(b[i]);
+	}
+	else {
+		for(unsigned int i=0;i<b.size();++i) {
+			cmprow.push_back(a[i] | b[i]);
+		}
+		for(unsigned int i=b.size();i<a.size();++i)
+			cmprow.push_back(a[i]);
+	}
+	return cmprow;
+}
 // FIXME actually do the multification right
 template<class Container=std::vector<int>>
 std::vector<Container> mltyply_matrix_even(auto a, auto b) {
 	std::vector<Container> vec2d;
+	if(a[0].size() > b.size()) return vec2d;
 	for(unsigned int i=0;i<a.size();++i) {
 		Container vec;
-		for(unsigned int j=0;j<b[0].size();++j)
+		for(unsigned int j=0;j<b[0].size();++j) 
 			vec.push_back(dotprod(a[i],b,j));
 		vec2d.push_back(vec);
 	}
 	return vec2d;
 }
-
-
+template<class Container=std::vector<int>>
+std::vector<Container> cmpprod_mat_2d(auto a, auto b) {
+	std::vector<Container> vec2d;
+	if(a.size() < b.size()) {
+		int j = 0;
+		unsigned int factor = b.size()/a.size();
+		for(unsigned int i=0;i<a.size();++i) {
+			for(unsigned int ii=0;ii<factor;++ii,++j)
+				vec2d.push_back(cmpprod(a[i],b[j]));
+		}
+	}
+	return vec2d;
+}
 // just combine two matrix without context preserved wihtin the new matrix
 // just for resizing 
 std::vector<std::vector<int>> combine_mat_2d(auto a, auto b) {
@@ -218,21 +255,31 @@ std::vector<std::vector<int>> combine_mat_2d(auto a, auto b) {
 	 }
 	 return v2d;
 }
-
-int main() {
-	struct Tuple size = create_mat2d(), factor_xy[2];
-	setup_scaling(factor_xy, 5);
-	auto vx = upscale_mat2d_x(VA, size, factor_xy[0]);
+template<class Ret> 
+Ret scale_matrix(Ret mat, int factor, struct Tuple size) {
+	struct Tuple factor_xy[2];
+	setup_scaling(factor_xy, factor);
+	auto vx = upscale_mat2d_x(mat, size, factor_xy[0]);
+	auto vy = upscale_mat2d_y(mat, size, factor_xy[1]);
+	auto cxy = cmpprod_mat_2d(vx,vy);
+	return cxy;
+}
+int main(int argc, char **argv) {
+	int factor;
+	if(argc>1) factor = atoi(*(argv + 1));
+	else factor = 5;
+	struct Tuple size = create_mat2d();
+	auto cxy = scale_matrix(VA,factor,size);
+	print_mat2d_plain_color(cxy); //testing
+	return 0;
 	//print_mat2d(vx, factor_size_struct(size,factor_x));
 	//print_mat2d(vx);
-	auto vy = upscale_mat2d_y(VA, size, factor_xy[1]);
-	auto mxy = mltyply_matrix_even(vx,vy);
-	auto yx = combine_mat_2d(vx,vy);
-	//std::cout << "\n";
-	print_mat2d_plain(mxy);
-	std::cout << "\n\n";
-	print_mat2d_plain(yx);
-	return 0;
+	//auto mxy = mltyply_matrix_even(vx,vy);
+	//auto yx = combine_mat_2d(vx,vy);
+	//std::cout << cxy[0].size() << "\n";
+	//print_mat2d_plain(mltyply_matrix_even(vy,vx));
+	//std::cout << "\n\n";
+	//print_mat2d_plain(yx);
 	//print_mat2d(vy, factor_size_struct(size,factor_y));
 	// jus a test
 	//int **arr = allocate_arr(size);
