@@ -10,6 +10,12 @@
 
 #include<multiutils.h>
 
+#ifndef __cplusplus
+#error "this is C++ code"
+#endif
+
+int color_opt_n = 4;
+int __errno;
 struct Tuple {int x,y,z,a,b,c,d,e;}; // supports up to 3d
 
 static void print_mat2d_plain(auto vec) {
@@ -21,9 +27,12 @@ static void print_mat2d_plain(auto vec) {
 }
 
 static void print_mat2d_plain_color(auto vec) {
+	const char *format = "\033[1;3%dm";
+	char color_str[strlen(format)];
+	sprintf(color_str, format, color_opt_n);
 	for(auto v : vec) {
 		for(int _v : v)
-			printf("%s%d\033[00m ",  _v == 0 ? "\033[2;38m" : "\033[1;34m", _v);
+			printf("%s%d\033[00m ",  _v == 0 ? "\033[2;38m" : color_str, _v);
 		printf("\n");
 	}
 }
@@ -197,15 +206,17 @@ std::vector<std::vector<int>> downscale_mat2d_y(auto v, struct Tuple size, struc
 
 template<class Container=std::vector<int>>
 Container dotprod(Container a, std::vector<Container> b, int b_x) {
-		int dot = 1;	
 		Container v;
 		if(a.size() < b.size()) {
-			for(unsigned int i=0;i<b.size();++i)  {
-				if(i<b[0].size()) v.push_back(a[i] | b[i][b_x]);
-				else break;
-			}
-			//for(unsigned int i=b.size();i<a.size();++i)
-				//v.push_back(a[i][b_x]);
+				for(unsigned int i=0;i<b[0].size();++i)  {
+					if((unsigned)b_x<b[0].size()) 
+						v.push_back(a[i] | b[i][b_x]);
+					else 
+						v.push_back(a[i] | b[b_x][i]);
+				}
+				//for(unsigned int i=b[0].size();i<a.size();++i)
+					//v.push_back(b[i][b_x]);
+			
 		}
 		return v;
 }
@@ -230,6 +241,19 @@ Container cmpprod(Container a, Container b) {
 }
 
 template<class Container=std::vector<int>>
+Container  dot_prod(Container a, Container b) {
+	Container v;
+	if(a.size() > b.size()) 
+		for(unsigned int i=0;i<b.size();++i)
+			v.push_back(b[i] | a[i]);
+	else 
+		for(unsigned int i=0;i<a.size();++i)
+			v.push_back(b[i] | a[i]);
+	return v;
+}
+
+
+template<class Container=std::vector<int>>
 Container cmpprod_down(Container a, Container b) {
 	Container cmprow;
 	if(a.size() < b.size()) 
@@ -247,7 +271,7 @@ template<class Container=std::vector<int>>
 std::vector<Container> mltyply_matrix_even(auto a, auto b) {
 	std::vector<Container> vec2d;
 	if(a.size() > b.size()) 
-		for(unsigned int i=0;i<b[0].size();++i) {
+		for(unsigned int i=0;i<a[0].size();++i) {
 				//vec2d.push_back(dotprod(a[i],b,i));
 				if(i<a.size()) vec2d.push_back(dotprod(a[i],b,i));
 				else break;
@@ -259,29 +283,14 @@ std::vector<Container> mltyply_matrix_even(auto a, auto b) {
 	return vec2d;
 }
 
-
-template<class Container=std::vector<int>>
-Container  dot_prod(Container a, Container b) {
-	Container v;
-	if(a.size() > b.size()) 
-		for(unsigned int i=0;i<b.size();++i)
-			v.push_back(b[i] | a[i]);
-	else 
-		for(unsigned int i=0;i<a.size();++i)
-			v.push_back(b[i] | a[i]);
-	return v;
-}
-
 template<class Container=std::vector<int>>
 std::vector<Container> mltyply_matrix(auto a, auto b) {
 	std::vector<Container> vec2d;
-	if(b.size() > a.size()) 
-		if(a.size() < b.size()) 
-			for(unsigned int i=0;i<a.size();++i) 
-				vec2d.push_back(dot_prod(a[i],b[i]));
+	if(a.size() < b.size()) 
+		for(unsigned int i=0;i<a.size();++i) 
+			vec2d.push_back(dotprod(a[i],b,i));
 	return vec2d;
 }
-
 
 template<class Container=std::vector<int>>
 std::vector<Container> cmpprod_mat_2d(auto a, auto b) {
@@ -354,7 +363,7 @@ Ret downscale_matrix(Ret mat, int factor, int retmat=0) {
 	auto dy = downscale_mat2d_y(mat,size_xy,d_factor_xy[1]);
 	auto dyy = downscale_mat2d_y(dx,size_xy,d_factor_xy[1]);
 	if(retmat) {
-		auto dxy =  mltyply_matrix(dy,dx);
+		auto dxy =  mltyply_matrix_even(dy,mltyply_matrix(dy,dx));
 		return dxy;
 	}
 	return dyy;
@@ -369,41 +378,104 @@ static const char *parse_args(const char *input) {
 	return (char*)0;
 }
 
-int main(int argc, char **argv) {
-	int factor=0,downfactor=0,mltipld_output=0;
-	if(argc>1) {
-		for(int i=1;i<argc;++i) {
-			if(parse_args(argv[i])==(char*)-1 && atoi(argv[i])>0 && !factor)
-				factor = atoi(*(argv + i));
-			else if(parse_args(argv[i])==(char*)-1 && atoi(argv[i])>0 && !downfactor)
-				downfactor = atoi(*(argv + i));
-			else if(parse_args(argv[i])==(char*)-1 && atoi(argv[i])==0) {
-				fprintf(stderr, "invalid arg:\'%s\'\n", argv[i]);
-				return 1;
-			}
-			else if(0 == strcmp(parse_args(argv[i]), "mltipd")) {
-				mltipld_output = atoi(argv[i + 1]);
-				printf("setting %d\n", mltipld_output);
-				break;
-			}
-			else if(parse_args(argv[i])==(char*)-2) {
-				fprintf(stderr, "invalid number args:\'%s\'\n", argv[i]);
-				return 1;
-			}
-		
+static auto parse_file_mat(const char *fname) {
+	int i = -1, arr[11], x,y;
+	FILE *f = NULL;
+	std::vector<std::vector<int>> v2d;
+	char tmpbuf[1];
+	if((f = fopen(fname, "r"))==NULL) {
+		perror(fname);
+		__errno = -3;
+		return v2d;
+	}
+	while(fread(tmpbuf,1,1,f)) {
+		if(*tmpbuf >= '0' && *tmpbuf <= '9') {
+			arr[++i] = atoi(tmpbuf);
+		}
+		else if(*tmpbuf == ' ' || *tmpbuf == '\n');
+		else __errno = -1;
+		if(*tmpbuf == '\n') {
+			std::vector<int> v;
+			for(int j=0;j<5;++j) v.push_back(arr[j]);
+			x = v.size();
+			v2d.push_back(v);
+			memset(arr, '\0', 7);
+			i=-1;
 		}
 	}
-	else {
-		factor = 5;
-		downfactor = 2;
+	y = v2d.size();
+	if(y < 9) __errno = -2;
+	fclose(f);
+	return v2d;
+}
+
+int main(int argc, char **argv) {
+	int factor=5,downfactor=2,argn=0,mltipld_output=0, cropf=0;
+	char *infile = NULL;
+	std::vector<std::vector<int>> inmat;
+	if(argc>1) {
+		for(int i=1;i<argc;++i) {
+			if(parse_args(argv[i])==(char*)-1 && atoi(argv[i])>0 && argn == 0) {
+				factor = atoi(*(argv + i));
+				argn = 1;
+			}
+			else if(parse_args(argv[i])==(char*)-1 && atoi(argv[i])>0 && argn == 1) {
+				downfactor = atoi(*(argv + i));
+				argn = 2;
+			}
+			else if(parse_args(argv[i])==(char*)-1 && atoi(argv[i])==0) {
+				fprintf(stderr, "expecting a number, not \'%s\'\n", argv[i]);
+				return 1;
+			}
+			
+			else if(parse_args(argv[i])==(char*)-2) {
+				fprintf(stderr, "invalid flag: \'%s\'\n", argv[i]);
+				return 1;
+			}
+			
+			else if(0 == strcmp(parse_args(argv[i]), "mltipd")) 
+				mltipld_output = atoi(argv[++i]);
+
+			else if(0 == strcmp(parse_args(argv[i]), "crop")) 
+				cropf = atoi(argv[++i]);
+			else if(0 == strcmp(parse_args(argv[i]), "color-out")) 
+				color_opt_n = atoi(argv[++i]);
+			else if(0 == strcmp(parse_args(argv[i]), "infile")) {
+				infile = (char*)malloc(sizeof(char)*100);
+				memcpy(infile,argv[++i],strlen(argv[i]));
+			}
+			else {
+				fprintf(stderr, "invalid given arg:\'%s\'\n", argv[i]);
+				return 1;
+			}
+		}
 	}
-	struct Tuple size = create_mat2d();
-	auto cxy = scale_matrix(VA,factor,size);
+	struct Tuple size = create_mat2d_();
+	if(infile!=NULL) {
+		inmat = parse_file_mat(infile);
+		if(__errno == -1) {
+			fprintf(stderr,"%s:corroupted file\n", infile);
+			free(infile);
+			return 1;
+		}
+		else if(__errno == -2) {
+			fprintf(stderr,"%s:matrix size assertion required - x < y\n", infile);
+			free(infile);
+			return 1;
+		}
+		else if(__errno == -3) {
+			free(infile);
+			return 1;
+		}
+		else free(infile);
+	}
+	else inmat = VA;
+	auto cxy = scale_matrix(inmat,factor,size);
 	auto dxy = downscale_matrix(cxy,downfactor,mltipld_output);
-	std::cout << cxy;
-	std::cout << "\n\n";
-	//printf("\n\n");
-	std::cout << dxy;
+	std::cout << cxy << "\n";
+	std::cout << dxy << "\n";
+	if(cropf) 
+		std::cout << downscale_matrix(cxy,cropf,1) << "\n";
 	return 0;
 }
 
