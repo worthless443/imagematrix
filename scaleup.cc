@@ -408,7 +408,8 @@ static auto parse_file_mat(const char *fname) {
 }
 
 int main(int argc, char **argv) {
-	int factor=5,downfactor=2,argn=0,mltipld_output=0, cropf=0;
+	int factor=5,downfactor=2,argn=0,mltipld_output=0, cropf=0,flg=0;
+	int n = 0;
 	char *infile = NULL;
 	std::vector<std::vector<int>> inmat;
 	if(argc>1) {
@@ -416,10 +417,12 @@ int main(int argc, char **argv) {
 			if(parse_args(argv[i])==(char*)-1 && atoi(argv[i])>0 && argn == 0) {
 				factor = atoi(*(argv + i));
 				argn = 1;
+				++n;
 			}
 			else if(parse_args(argv[i])==(char*)-1 && atoi(argv[i])>0 && argn == 1) {
 				downfactor = atoi(*(argv + i));
 				argn = 2;
+				++n;
 			}
 			else if(parse_args(argv[i])==(char*)-1 && atoi(argv[i])==0) {
 				fprintf(stderr, "expecting a number, not \'%s\'\n", argv[i]);
@@ -431,16 +434,46 @@ int main(int argc, char **argv) {
 				return 1;
 			}
 			
-			else if(0 == strcmp(parse_args(argv[i]), "mltipd")) 
+			else if(0 == strcmp(parse_args(argv[i]), "mltipd")) {
+				if(flg) n+=2;
+				else ++n;
+				if(argc - n - 1==0) {
+					fprintf(stderr, "expecting arg to \'mltipd\'\n");
+					return 1;
+				}
 				mltipld_output = atoi(argv[++i]);
-
-			else if(0 == strcmp(parse_args(argv[i]), "crop")) 
+				flg = 1;
+			}
+			else  if(0 == strcmp(parse_args(argv[i]), "crop")) {
+				if(flg) n+=2;
+				else ++n;
+				if(argc - n - 1==0) {
+					fprintf(stderr, "expecting arg to \'crop\'\n");
+					return 1;
+				}
 				cropf = atoi(argv[++i]);
-			else if(0 == strcmp(parse_args(argv[i]), "color-out")) 
+				flg = 1;
+			}
+			else if(0 == strcmp(parse_args(argv[i]), "color-out")) {
+				if(flg) n+=2;
+				else ++n;
+				if(argc - n - 1==0) {
+					fprintf(stderr, "expecting arg to \'color-out\'\n");
+					return 1;
+				}
 				color_opt_n = atoi(argv[++i]);
+				flg = 1;
+			}
 			else if(0 == strcmp(parse_args(argv[i]), "infile")) {
+				if(flg) n+=2;
+				else ++n;
+				if(argc - n - 1==0) {
+					fprintf(stderr, "expecting arg to \'infile\'\n");
+					return 1;
+				}
 				infile = (char*)malloc(sizeof(char)*100);
 				memcpy(infile,argv[++i],strlen(argv[i]));
+				flg = 1;
 			}
 			else {
 				fprintf(stderr, "invalid given arg:\'%s\'\n", argv[i]);
