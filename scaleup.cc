@@ -6,6 +6,7 @@
 #include<vector>
 #include<iostream>
 #include<cassert>
+#include<cstring>
 
 #include<multiutils.h>
 
@@ -27,22 +28,14 @@ static void print_mat2d_plain_color(auto vec) {
 	}
 }
 
-static std::ostream &print_mat2d_plain_ostream(std::ostream &cout, std::vector<std::vector<int>> vec) {
-	for(auto v : vec) {
-		for(int _v : v)
-			cout <<  _v << " ";
-		cout << "\n";
-	}
-	return cout;
-}
 #ifdef __OVERLOAD_OSTREAM
-std::ostream &operator<<(std::ostream &o, auto v) {
-	o << print_mat2d_plain_ostream(o,v);
+std::ostream &operator<<(std::ostream &o, std::vector<std::vector<int>> v) {
+	print_mat2d_plain_color(v);
 	return o;
 }
-std::ostream &operator<<(std::ostream &o, const char *chr) {
-	o << chr;
-	return o;
+std::ostream &operator<<(std::ostream &cout, char *nigger) {
+	cout << nigger;
+	return cout;
 }
 #endif
 
@@ -80,7 +73,7 @@ int getdim(struct Tuple *t) {
 	
 	return size;
 }
-struct Tuple create_mat2d() {
+struct Tuple create_mat2d_() {
 	APPEND_ARR_(0 0 0 0 0 0 0 0);
 	APPEND_ARR_(0 1 1 0 1 1 0 0);
 	APPEND_ARR_(0 0 1 0 1 0 0 0);
@@ -90,6 +83,19 @@ struct Tuple create_mat2d() {
 	APPEND_ARR_(0 0 1 1 1 0 0 0);
 	APPEND_ARR_(0 1 0 0 0 1 0 0);
 	APPEND_ARR_(1 0 0 1 0 0 1 0);
+	struct Tuple t = {6,9};
+	return t;
+}
+struct Tuple create_mat2d() {
+	APPEND_ARR_(1 1 1 1 1 0 0 0);
+	APPEND_ARR_(0 0 0 1 1 0 0 0);
+	APPEND_ARR_(0 0 0 1 1 0 0 0);
+	APPEND_ARR_(0 0 0 1 1 1 1 1);
+	APPEND_ARR_(0 0 0 1 1 0 0 0);
+	APPEND_ARR_(0 0 0 1 1 0 0 0);
+	APPEND_ARR_(0 0 0 1 1 0 0 0);
+	APPEND_ARR_(0 0 0 1 1 0 0 0);
+	APPEND_ARR_(1 1 1 1 1 0 0 0);
 	struct Tuple t = {6,9};
 	return t;
 }
@@ -165,7 +171,6 @@ std::vector<std::vector<int>> downscale_mat2d_x(auto v, struct Tuple size, struc
 	DECLAIR_VAN(x,y,_);
 	x = size.x/factor.x; 
 	y = size.y/factor.y;	
-	int arr[x+1];
 	for(int i=0;i<size.y;++i) {
 		std::vector<int> v1;
 		for(int start=0,a=0;start<size.x;start+=factor.x,++a) 
@@ -181,7 +186,6 @@ std::vector<std::vector<int>> upscale_mat2d_y(auto v, struct Tuple size, struct 
 		for(int _=0;_<factor.y;++_) 
 			v2d.push_back(v[i]);
 	return v2d;
-
 }
 
 std::vector<std::vector<int>> downscale_mat2d_y(auto v, struct Tuple size, struct Tuple factor) {
@@ -196,10 +200,12 @@ Container dotprod(Container a, std::vector<Container> b, int b_x) {
 		int dot = 1;	
 		Container v;
 		if(a.size() < b.size()) {
-			for(unsigned int i=0;i<a.size();++i) 
-				v.push_back(a[i] | b[i][b_x]);
-			//for(unsigned int i=a.size();i<b.size();++i)
-				//v.push_back(b[i][b_x]);
+			for(unsigned int i=0;i<b.size();++i)  {
+				if(i<b[0].size()) v.push_back(a[i] | b[i][b_x]);
+				else break;
+			}
+			//for(unsigned int i=b.size();i<a.size();++i)
+				//v.push_back(a[i][b_x]);
 		}
 		return v;
 }
@@ -240,13 +246,43 @@ Container cmpprod_down(Container a, Container b) {
 template<class Container=std::vector<int>>
 std::vector<Container> mltyply_matrix_even(auto a, auto b) {
 	std::vector<Container> vec2d;
-	if(a.size() < b.size()) {
-		for(unsigned int i=0;i<a.size();++i) {
-				vec2d.push_back(cmpprod_down(a[i],b[i]));
+	if(a.size() > b.size()) 
+		for(unsigned int i=0;i<b[0].size();++i) {
+				//vec2d.push_back(dotprod(a[i],b,i));
+				if(i<a.size()) vec2d.push_back(dotprod(a[i],b,i));
+				else break;
 		}
-	}
+	else 
+		for(unsigned int i=0;i<b.size();++i) 
+				vec2d.push_back(cmpprod_down(a[i],b[i]));
+
 	return vec2d;
 }
+
+
+template<class Container=std::vector<int>>
+Container  dot_prod(Container a, Container b) {
+	Container v;
+	if(a.size() > b.size()) 
+		for(unsigned int i=0;i<b.size();++i)
+			v.push_back(b[i] | a[i]);
+	else 
+		for(unsigned int i=0;i<a.size();++i)
+			v.push_back(b[i] | a[i]);
+	return v;
+}
+
+template<class Container=std::vector<int>>
+std::vector<Container> mltyply_matrix(auto a, auto b) {
+	std::vector<Container> vec2d;
+	if(b.size() > a.size()) 
+		if(a.size() < b.size()) 
+			for(unsigned int i=0;i<a.size();++i) 
+				vec2d.push_back(dot_prod(a[i],b[i]));
+	return vec2d;
+}
+
+
 template<class Container=std::vector<int>>
 std::vector<Container> cmpprod_mat_2d(auto a, auto b) {
 	std::vector<Container> vec2d;
@@ -294,8 +330,7 @@ std::vector<std::vector<int>> combine_mat_2d(auto a, auto b) {
 					tmp_a_y+=1;
 				}
 			}
-			v2d.push_back(v_tmp);
-		 }
+			v2d.push_back(v_tmp); }
 	 }
 	 return v2d;
 }
@@ -310,22 +345,53 @@ Ret scale_matrix(Ret mat, int factor, struct Tuple size) {
 }
 
 template<class Ret> 
-Ret downscale_matrix(Ret mat, int factor) {
+Ret downscale_matrix(Ret mat, int factor, int retmat=0) {
 	struct Tuple size_xy, d_factor_xy[2];
 	size_xy.y = mat.size();
 	size_xy.x = mat[0].size();
 	setup_scaling(d_factor_xy, factor);
 	auto dx = downscale_mat2d_x(mat,size_xy,d_factor_xy[0]);
 	auto dy = downscale_mat2d_y(mat,size_xy,d_factor_xy[1]);
-	auto dxy =  mltyply_matrix_even(dy,dx);
-	return dxy;
+	auto dyy = downscale_mat2d_y(dx,size_xy,d_factor_xy[1]);
+	if(retmat) {
+		auto dxy =  mltyply_matrix(dy,dx);
+		return dxy;
+	}
+	return dyy;
+}
+
+static const char *parse_args(const char *input) {
+	int i;
+	for(i=0;*(input + i)=='-';++i);
+	if(!i) return (char*)-1;
+	if(i<=2) return input + i;
+	else if(i>2) return (char*)-2;
+	return (char*)0;
 }
 
 int main(int argc, char **argv) {
-	int factor,downfactor;
+	int factor=0,downfactor=0,mltipld_output=0;
 	if(argc>1) {
-		factor = atoi(*(argv + 1));
-		downfactor= atoi(*(argv + 2));
+		for(int i=1;i<argc;++i) {
+			if(parse_args(argv[i])==(char*)-1 && atoi(argv[i])>0 && !factor)
+				factor = atoi(*(argv + i));
+			else if(parse_args(argv[i])==(char*)-1 && atoi(argv[i])>0 && !downfactor)
+				downfactor = atoi(*(argv + i));
+			else if(parse_args(argv[i])==(char*)-1 && atoi(argv[i])==0) {
+				fprintf(stderr, "invalid arg:\'%s\'\n", argv[i]);
+				return 1;
+			}
+			else if(0 == strcmp(parse_args(argv[i]), "mltipd")) {
+				mltipld_output = atoi(argv[i + 1]);
+				printf("setting %d\n", mltipld_output);
+				break;
+			}
+			else if(parse_args(argv[i])==(char*)-2) {
+				fprintf(stderr, "invalid number args:\'%s\'\n", argv[i]);
+				return 1;
+			}
+		
+		}
 	}
 	else {
 		factor = 5;
@@ -333,23 +399,11 @@ int main(int argc, char **argv) {
 	}
 	struct Tuple size = create_mat2d();
 	auto cxy = scale_matrix(VA,factor,size);
-	auto dxy = downscale_matrix(cxy,downfactor);
-	print_mat2d_plain_color(cxy); //testing
-	printf("\n\n");
-	print_mat2d_plain_color(dxy);
+	auto dxy = downscale_matrix(cxy,downfactor,mltipld_output);
+	std::cout << cxy;
+	std::cout << "\n\n";
+	//printf("\n\n");
+	std::cout << dxy;
 	return 0;
-	//print_mat2d(vx, factor_size_struct(size,factor_x));
-	//print_mat2d(vx);
-	//auto mxy = mltyply_matrix_even(vx,vy);
-	//auto yx = combine_mat_2d(vx,vy);
-	//std::cout << cxy[0].size() << "\n";
-	//print_mat2d_plain(mltyply_matrix_even(vy,vx));
-	//std::cout << "\n\n";
-	//print_mat2d_plain(yx);
-	//print_mat2d(vy, factor_size_struct(size,factor_y));
-	// jus a test
-	//int **arr = allocate_arr(size);
-	//free_arr(arr,size);
-	//for(int i=0;i<5;++i) printf("%d\n", VA[1][i]);
 }
 
