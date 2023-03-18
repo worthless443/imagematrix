@@ -407,6 +407,8 @@ static auto parse_file_mat(const char *fname) {
 	return v2d;
 }
 
+#define HELP_MSG "scaleup <options = --color-out | --crop | --infile > <up> <down>\n./scaleup --help to use this message\n"
+
 int main(int argc, char **argv) {
 	int factor=5,downfactor=2,argn=0,mltipld_output=0, cropf=0,flg=0;
 	int n = 0;
@@ -419,6 +421,11 @@ int main(int argc, char **argv) {
 				argn = 1;
 				++n;
 			}
+			else if(0 == strcmp(parse_args(argv[i]), "help")) {
+				fprintf(stderr, HELP_MSG);
+				return 0;
+			}
+
 			else if(parse_args(argv[i])==(char*)-1 && atoi(argv[i])>0 && argn == 1) {
 				downfactor = atoi(*(argv + i));
 				argn = 2;
