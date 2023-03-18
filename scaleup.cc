@@ -42,7 +42,7 @@ std::ostream &operator<<(std::ostream &o, std::vector<std::vector<int>> v) {
 	print_mat2d_plain_color(v);
 	return o;
 }
-std::ostream &operator<<(std::ostream &cout, char *nigger) {
+std::ostream &operator<<(std::ostream &cout, char *&nigger) {
 	cout << nigger;
 	return cout;
 }
@@ -146,7 +146,6 @@ void print_mat2d(struct Tuple size2d) {
 	printf("not compiled with DEBUG_MAT\n");
 #endif
 }
-
 
 int **allocate_arr(struct Tuple size) {
 	int **tmp = (int**)malloc(sizeof(int)*size.y);
@@ -379,7 +378,7 @@ static const char *parse_args(const char *input) {
 }
 
 static auto parse_file_mat(const char *fname) {
-	int i = -1, arr[11], x,y;
+	int i = -1, arr[11], y;
 	FILE *f = NULL;
 	std::vector<std::vector<int>> v2d;
 	char tmpbuf[1];
@@ -397,7 +396,6 @@ static auto parse_file_mat(const char *fname) {
 		if(*tmpbuf == '\n') {
 			std::vector<int> v;
 			for(int j=0;j<5;++j) v.push_back(arr[j]);
-			x = v.size();
 			v2d.push_back(v);
 			memset(arr, '\0', 7);
 			i=-1;
@@ -450,6 +448,7 @@ int main(int argc, char **argv) {
 			}
 		}
 	}
+
 	struct Tuple size = create_mat2d_();
 	if(infile!=NULL) {
 		inmat = parse_file_mat(infile);
@@ -470,6 +469,7 @@ int main(int argc, char **argv) {
 		else free(infile);
 	}
 	else inmat = VA;
+
 	auto cxy = scale_matrix(inmat,factor,size);
 	auto dxy = downscale_matrix(cxy,downfactor,mltipld_output);
 	std::cout << cxy << "\n";
